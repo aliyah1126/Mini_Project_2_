@@ -8,20 +8,29 @@ $success = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $title = trim($_POST["title"] ?? "");
-    $category_id = trim($_POST["category_id"] ?? "");
+    $category_id = intval($_POST["category_id"] ?? 0); // Memastikan nilai adalah ID angka
     $tech_stack = trim($_POST["tech_stack"] ?? "");
-    $description = trim($_POST["description"] ?? ""); // Deskripsi bersifat opsional
+    $description = trim($_POST["description"] ?? "");
+    $student_id = $_SESSION["user_id"];
 
     if (empty($title) || empty($category_id)) {
-        $error = "Please fill in the required fields (Title and Category).";
+        $error = "Sila isi semua ruang yang diwajibkan (Tajuk dan Kategori).";
     } else {
-        // Logika simpan data / muat naik fail
-        // Masukkan ke pangkalan data mengikut keperluan sistem anda
-        $success = "Project entry submitted successfully!";
+        // Masukkan data ke dalam pangkalan data
+        $stmt = $conn->prepare("INSERT INTO assignments (student_id, category_id, title, tech_stack, description) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("iisss", $student_id, $category_id, $title, $tech_stack, $description);
+
+        if ($stmt->execute()) {
+            // Redirect ke halaman direktori selepas berjaya
+            header("Location: ../index.php?status=submitted");
+            exit;
+        } else {
+            $error = "Gagal menyimpan projek: " . $conn->error;
+        }
     }
 }
 
-// Ambil kategori dari database jika ada
+// Ambil senarai kategori dari database untuk pilihan dropdown
 $categories_query = $conn->query("SELECT * FROM categories ORDER BY category_name ASC");
 
 $page_title = "Submit Entry";
@@ -35,29 +44,22 @@ include "../includes/header.php";
             <h4 class="fw-bold text-primary mb-3"><i class="bi bi-upload"></i> Submit Project Entry</h4>
 
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-            <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
-            <form method="POST" enctype="multipart/form-data" novalidate>
+            <form method="POST" class="client-validate" novalidate>
                 <!-- Project Title -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Project Title <span class="text-danger">*</span></label>
-                    <input type="text" name="title" class="form-control" placeholder="e.g. FYP" value="<?= htmlspecialchars($_POST['title'] ?? '') ?>" required>
+                    <input type="text" name="title" class="form-control" placeholder="Contoh: FYP" required>
                 </div>
 
-                <!-- Category Dropdown dengan Opsi Pilihan Standard -->
+                <!-- Category Dropdown Dinamik Dari Database -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
                     <select name="category_id" class="form-select" required>
                         <option value="">-- Select Category --</option>
-                        <option value="Web Application">Web Application</option>
-                        <option value="Mobile Application">Mobile Application</option>
-                        <option value="System Administration">System Administration</option>
-                        <option value="Database & Analytics">Database & Analytics</option>
-                        <option value="Networking & Security">Networking & Security</option>
-                        
                         <?php if ($categories_query && $categories_query->num_rows > 0): ?>
                             <?php while ($cat = $categories_query->fetch_assoc()): ?>
-                                <option value="<?= htmlspecialchars($cat['id']) ?>">
+                                <option value="<?= $cat['id'] ?>">
                                     <?= htmlspecialchars($cat['category_name']) ?>
                                 </option>
                             <?php endwhile; ?>
@@ -68,19 +70,13 @@ include "../includes/header.php";
                 <!-- Tech Stack -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Technologies Used</label>
-                    <input type="text" name="tech_stack" class="form-control" placeholder="e.g. PHP, MySQL, Bootstrap 5" value="<?= htmlspecialchars($_POST['tech_stack'] ?? '') ?>">
+                    <input type="text" name="tech_stack" class="form-control" placeholder="e.g. PHP, MySQL, Bootstrap 5">
                 </div>
 
-                <!-- Project Description (Opsional / Optional) -->
+                <!-- Project Description -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Project Description <span class="text-muted fw-normal">(Optional)</span></label>
-                    <textarea name="description" class="form-control" rows="4" placeholder="Brief explanation of your project (optional)..."><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
-                </div>
-
-                <!-- Upload Documentation -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Upload Documentation (PDF, DOCX, TXT, or ZIP - Max 5MB)</label>
-                    <input type="file" name="document" class="form-control">
+                    <textarea name="description" class="form-control" rows="4" placeholder="Brief explanation of your project..."></textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-send"></i> Submit Entry</button>
