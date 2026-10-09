@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",()=>{document.querySelectorAll("form.client-validate").forEach(f=>{f.addEventListener("submit",e=>{if(!f.checkValidity()){e.preventDefault();e.classList.add("was-validated")}})})});
