@@ -14,28 +14,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $student_id = $_SESSION["user_id"];
 
     if (empty($title) || empty($category_id)) {
-        $error = "Please fill in all required fields (Project Title and Category).";
+        $error = "Sila isi semua ruang wajib (Tajuk Projek dan Kategori).";
     } else {
-        // Semak jika category_id adalah nombor ID atau teks
-        if (is_numeric($category_id)) {
-            $stmt = $conn->prepare("INSERT INTO assignments (student_id, category_id, title, tech_stack, description) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("iisss", $student_id, $category_id, $title, $tech_stack, $description);
-        } else {
-            // Jika kategori dipilih dari opsi default teks
-            $stmt = $conn->prepare("INSERT INTO assignments (student_id, category_id, title, tech_stack, description) VALUES (?, NULL, ?, ?, ?)");
-            $stmt->bind_param("isss", $student_id, $title, $tech_stack, $description);
-        }
+        // Tentukan nilai category_id (sama ada nombor ID atau NULL jika pilihan biasa)
+        $cat_val = is_numeric($category_id) ? intval($category_id) : NULL;
+
+        // Menggunakan nama jadual 'projects'
+        $stmt = $conn->prepare("INSERT INTO projects (student_id, category_id, title, tech_stack, description) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("iisss", $student_id, $cat_val, $title, $tech_stack, $description);
 
         if ($stmt->execute()) {
             header("Location: ../index.php?status=submitted");
             exit;
         } else {
-            $error = "Failed to submit project: " . $conn->error;
+            $error = "Gagal menyimpan projek: " . $conn->error;
         }
     }
 }
 
-// Ambil kategori dari database
+// Ambil senarai kategori dari database untuk pilihan dropdown
 $categories_query = $conn->query("SELECT * FROM categories ORDER BY category_name ASC");
 
 $page_title = "Submit Entry";
@@ -50,11 +47,11 @@ include "../includes/header.php";
 
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
-            <form method="POST" enctype="multipart/form-data">
+            <form method="POST">
                 <!-- Project Title -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Project Title <span class="text-danger">*</span></label>
-                    <input type="text" name="title" class="form-control" placeholder="e.g. FYP" required>
+                    <input type="text" name="title" class="form-control" placeholder="Contoh: FYP" required>
                 </div>
 
                 <!-- Category Dropdown -->
@@ -63,7 +60,7 @@ include "../includes/header.php";
                     <select name="category_id" class="form-select" required>
                         <option value="">-- Select Category --</option>
                         
-                        <!-- Dynamic Categories from Database -->
+                        <!-- Dynamic Categories dari Database -->
                         <?php if ($categories_query && $categories_query->num_rows > 0): ?>
                             <?php while ($cat = $categories_query->fetch_assoc()): ?>
                                 <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
@@ -88,13 +85,7 @@ include "../includes/header.php";
                 <!-- Project Description (Optional) -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Project Description <span class="text-muted fw-normal">(Optional)</span></label>
-                    <textarea name="description" class="form-control" rows="4" placeholder="Brief description of your project..."></textarea>
-                </div>
-
-                <!-- Upload File -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Upload Documentation (PDF, DOCX, TXT, or ZIP - Max 5MB)</label>
-                    <input type="file" name="document" class="form-control">
+                    <textarea name="description" class="form-control" rows="4" placeholder="Penerangan ringkas mengenai projek..."></textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary fw-bold w-100"><i class="bi bi-send"></i> Submit Entry</button>
