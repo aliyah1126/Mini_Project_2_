@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $cat_val = is_numeric($category_id) ? intval($category_id) : NULL;
 
         // Menggunakan nama jadual 'projects'
-        $stmt = $conn->prepare("INSERT INTO projects (student_id, category_id, title, tech_stack, description) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO projects (user_id, category_id, title, tech_stack, description) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("iisss", $student_id, $cat_val, $title, $tech_stack, $description);
 
         if ($stmt->execute()) {
