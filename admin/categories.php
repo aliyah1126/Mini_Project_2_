@@ -6,7 +6,7 @@ require_role("admin");
 $error = "";
 $success = "";
 
-// 1. Proses Padam Kategori (Delete)
+// 1. Padam Kategori (Delete)
 if (isset($_GET['delete_id'])) {
     $delete_id = intval($_GET['delete_id']);
     $stmt = $conn->prepare("DELETE FROM categories WHERE id = ?");
@@ -14,11 +14,11 @@ if (isset($_GET['delete_id'])) {
     if ($stmt->execute()) {
         $success = "Category deleted successfully!";
     } else {
-        $error = "Failed to delete category. It may be linked to existing student projects.";
+        $error = "Failed to delete category.";
     }
 }
 
-// 2. Proses Tambah Kategori Baru (Create)
+// 2. Tambah Kategori Baru (Create)
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = trim($_POST["category_name"] ?? "");
     $desc = trim($_POST["description"] ?? "");
@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-// 3. Ambil Senarai Kategori Terkini
+// 3. Ambil Senarai Kategori
 $categories = $conn->query("SELECT * FROM categories ORDER BY id DESC");
 
 $page_title = "Manage Categories";
@@ -45,7 +45,6 @@ include "../includes/header.php";
 ?>
 
 <div class="row g-4">
-    <!-- Borang Tambah Kategori -->
     <div class="col-md-5">
         <div class="card p-4 border-0 shadow-sm">
             <h4 class="fw-bold text-primary mb-3"><i class="bi bi-folder-plus"></i> Create Category</h4>
@@ -53,21 +52,20 @@ include "../includes/header.php";
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
             <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
-            <form method="POST" class="client-validate" novalidate>
+            <form method="POST">
                 <div class="mb-3">
-                    <label class="form-label">Category Name</label>
+                    <label class="form-label fw-bold">Category Name</label>
                     <input type="text" name="category_name" class="form-control" placeholder="e.g. Web Development" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control" rows="3" placeholder="Brief explanation of this category..." required></textarea>
+                    <label class="form-label fw-bold">Description</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Brief description..." required></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="bi bi-plus-lg"></i> Add Category</button>
             </form>
         </div>
     </div>
 
-    <!-- Senarai Kategori Sedia Ada -->
     <div class="col-md-7">
         <div class="card p-4 border-0 shadow-sm">
             <h4 class="fw-bold mb-3">Existing Categories</h4>

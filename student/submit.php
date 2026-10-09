@@ -8,29 +8,34 @@ $success = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $title = trim($_POST["title"] ?? "");
-    $category_id = intval($_POST["category_id"] ?? 0); // Memastikan nilai adalah ID angka
+    $category_id = trim($_POST["category_id"] ?? "");
     $tech_stack = trim($_POST["tech_stack"] ?? "");
     $description = trim($_POST["description"] ?? "");
     $student_id = $_SESSION["user_id"];
 
     if (empty($title) || empty($category_id)) {
-        $error = "Sila isi semua ruang yang diwajibkan (Tajuk dan Kategori).";
+        $error = "Please fill in all required fields (Project Title and Category).";
     } else {
-        // Masukkan data ke dalam pangkalan data
-        $stmt = $conn->prepare("INSERT INTO assignments (student_id, category_id, title, tech_stack, description) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("iisss", $student_id, $category_id, $title, $tech_stack, $description);
+        // Semak jika category_id adalah nombor ID atau teks
+        if (is_numeric($category_id)) {
+            $stmt = $conn->prepare("INSERT INTO assignments (student_id, category_id, title, tech_stack, description) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iisss", $student_id, $category_id, $title, $tech_stack, $description);
+        } else {
+            // Jika kategori dipilih dari opsi default teks
+            $stmt = $conn->prepare("INSERT INTO assignments (student_id, category_id, title, tech_stack, description) VALUES (?, NULL, ?, ?, ?)");
+            $stmt->bind_param("isss", $student_id, $title, $tech_stack, $description);
+        }
 
         if ($stmt->execute()) {
-            // Redirect ke halaman direktori selepas berjaya
             header("Location: ../index.php?status=submitted");
             exit;
         } else {
-            $error = "Gagal menyimpan projek: " . $conn->error;
+            $error = "Failed to submit project: " . $conn->error;
         }
     }
 }
 
-// Ambil senarai kategori dari database untuk pilihan dropdown
+// Ambil kategori dari database
 $categories_query = $conn->query("SELECT * FROM categories ORDER BY category_name ASC");
 
 $page_title = "Submit Entry";
@@ -45,25 +50,32 @@ include "../includes/header.php";
 
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
-            <form method="POST" class="client-validate" novalidate>
+            <form method="POST" enctype="multipart/form-data">
                 <!-- Project Title -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Project Title <span class="text-danger">*</span></label>
-                    <input type="text" name="title" class="form-control" placeholder="Contoh: FYP" required>
+                    <input type="text" name="title" class="form-control" placeholder="e.g. FYP" required>
                 </div>
 
-                <!-- Category Dropdown Dinamik Dari Database -->
+                <!-- Category Dropdown -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
                     <select name="category_id" class="form-select" required>
                         <option value="">-- Select Category --</option>
+                        
+                        <!-- Dynamic Categories from Database -->
                         <?php if ($categories_query && $categories_query->num_rows > 0): ?>
                             <?php while ($cat = $categories_query->fetch_assoc()): ?>
-                                <option value="<?= $cat['id'] ?>">
-                                    <?= htmlspecialchars($cat['category_name']) ?>
-                                </option>
+                                <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
                             <?php endwhile; ?>
                         <?php endif; ?>
+
+                        <!-- Standard Default Options -->
+                        <option value="Web Application">Web Application</option>
+                        <option value="Mobile Application">Mobile Application</option>
+                        <option value="System Administration">System Administration</option>
+                        <option value="Database & Analytics">Database & Analytics</option>
+                        <option value="Networking & Security">Networking & Security</option>
                     </select>
                 </div>
 
@@ -73,13 +85,19 @@ include "../includes/header.php";
                     <input type="text" name="tech_stack" class="form-control" placeholder="e.g. PHP, MySQL, Bootstrap 5">
                 </div>
 
-                <!-- Project Description -->
+                <!-- Project Description (Optional) -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Project Description <span class="text-muted fw-normal">(Optional)</span></label>
-                    <textarea name="description" class="form-control" rows="4" placeholder="Brief explanation of your project..."></textarea>
+                    <textarea name="description" class="form-control" rows="4" placeholder="Brief description of your project..."></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-send"></i> Submit Entry</button>
+                <!-- Upload File -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Upload Documentation (PDF, DOCX, TXT, or ZIP - Max 5MB)</label>
+                    <input type="file" name="document" class="form-control">
+                </div>
+
+                <button type="submit" class="btn btn-primary fw-bold w-100"><i class="bi bi-send"></i> Submit Entry</button>
             </form>
         </div>
     </div>
